@@ -230,3 +230,132 @@ firewall-cmd --permanent --add-service=new
 ```
 firewall-cmd --permanent --remove-masquerade
 ```
+#####using iptables
+######basic
+```
+iptables-save >file
+```
+```
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A INPUT -m modulename --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -L
+iptables -nvL
+iptables-restore < file
+```
+######firewall design
+```
+iptables -F  //remove all rules
+```
+first set accept rules, then denial rules
+######install serivces
+```
+yum install -y iptables-services
+```
+```
+vim /etc/sysconfig/iptables
+```
+And
+```
+vim /etc/sysconfig/iptables-config
+```
+config
+```
+IPTABLES_SAVE_ON_STOP="yes"
+IPTABLES_SAVE_ON_RESTART="yes"
+```
+insert rule at location
+```
+iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
+```
+#####methods tunnel traffic
+server2:
+```
+w3m localhost
+```
+
+server1:
+```
+ssh -f -L 8080:localhost:80 root@server2 -N  //run in bg, bind port
+w3m http://localhost:8080 //open server2
+```
+######openvpn
+server2
+```
+yum intall -y openvpn easy-rsa -y
+```
+######configure
+server2:
+```
+iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE
+```
+
+copy
+```
+cp  /etc/openvpn/server.conf
+```
+edit:
+```
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 8.8.8.8"
+push "dhcp-option DNS 8.8.4.4"
+user nodoby
+group nodoby
+```
+######config client
+server2:  
+generate client cert:
+````
+cd /etc/openvpn/easy-rsa
+./build-key client
+```
+######connecting to openvpn server
+server1 (client)
+```
+cd ~
+mkdir certs
+cd certs
+cp /usr/share/doc/openvpn-2.3.10/sample-config-files/client/conf .
+```
+```
+openvpn --config client.conf
+```
+
+generate key
+```
+./clean-all
+./build-ca
+./build-key-server server
+./build-dh
+./build-key client
+```
+#####monitor network
+######tracepath
+```
+tracepath www.aol.com
+```
+```
+ip link show enp0s8
+```
+give some stats
+```
+ip -s link show enp0s8
+```
+######netstat
+```
+netstat -tln
+```
+```
+netstat -i //interface
+netstat -s //stat
+```
+######sysstat
+```
+sar -n DEV
+sar -n DEV 1 1   (interval=1,cap=3)
+```
+######nmap
+```
+nmap scanme.nmap.org
+nmap --iflist
+```
